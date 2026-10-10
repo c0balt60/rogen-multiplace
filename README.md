@@ -4,41 +4,43 @@ A multi-place Roblox game template built on [roblox-ts](https://roblox-ts.com), 
 
 ## Included
 
-| Area | Packages |
-| --- | --- |
-| Framework | `@flamework/core`, `@flamework/components` |
-| State | `@rbxts/charm`, `@rbxts/charm-sync` |
-| Data | `@rbxts/profile-store` |
-| Networking | `@rbxts/tether` (with `@rbxts/serio`) |
-| UI | `@rbxts/vide`, `@rbxts/vide-charm`, `@rbxts/ripple` / `@rbxts/vide-ripple`, `@rbxts/ui-labs`, `@rbxts/topbar-plus` |
-| Utilities | `@rbxts/validate-tree`, `@rbxts/janitor`, `@rbxts/sift`, `@rbxts/t`, `@rbxts/log`, `@rbxts/cmdr` |
+| Area       | Packages                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| Framework  | `@flamework/core`, `@flamework/components`                                                                         |
+| State      | `@rbxts/charm`, `@rbxts/charm-sync`                                                                                |
+| Data       | `@rbxts/profile-store`                                                                                             |
+| Networking | `@rbxts/tether` (with `@rbxts/serio`)                                                                              |
+| UI         | `@rbxts/vide`, `@rbxts/vide-charm`, `@rbxts/ripple` / `@rbxts/vide-ripple`, `@rbxts/ui-labs`, `@rbxts/topbar-plus` |
+| Utilities  | `@rbxts/validate-tree`, `@rbxts/janitor`, `@rbxts/sift`, `@rbxts/t`, `@rbxts/log`, `@rbxts/cmdr`                   |
 
 ## Requirements
 
 - [Node.js](https://nodejs.org) and [pnpm](https://pnpm.io)
-- [Argon](https://argon.wiki), via `rokit install` or your own install, plus the Argon Studio plugin
+- [Rokit](https://github.com/rojo-rbx/rokit). `rokit install` installs [Argon](https://argon.wiki), [Rojo](https://rojo.space) and [rbxcloud](https://github.com/Sleitnick/rbxcloud). You also need the Studio plugin for whichever tool you serve with (see `tooling.json`).
+- [Git LFS](https://git-lfs.com). Run `git lfs install` once, so packed `.rbxm` models are stored in LFS.
 
 ## Getting started
 
 ```console
 pnpm install
-pnpm dev:lobby
+pnpm dev lobby
 ```
 
-Then open the lobby place in Studio and connect from the Argon plugin. Use `pnpm dev:match` for the match place.
+Then open the lobby place in Studio and connect from the Argon plugin. Use `pnpm dev match` for the match place.
 
 ## Scripts
 
-Every place has the same four scripts. `<place>` is `lobby` or `match`.
+Every command takes a place name, which is any folder in `places/`: `lobby` or `match`. `scripts/place.mjs` runs them all, so adding a place doesn't touch `package.json`.
 
-| Script | What it does |
-| --- | --- |
-| `pnpm dev:<place>` | Runs `watch:<place>` and `serve:<place>` together |
-| `pnpm watch:<place>` | Regenerates the place's project file with Rogen and compiles with `rbxtsc` on every change |
-| `pnpm serve:<place>` | Starts Argon on `places/<place>/default.project.json` |
-| `pnpm build:<place>` | Builds one place once |
-| `pnpm build` | Builds every place, one after another |
-| `pnpm lint` / `pnpm lint:fix` | Runs ESLint and Prettier |
+| Script                        | What it does                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm dev <place>`            | Runs `watch` and `serve` for the place together                                            |
+| `pnpm watch <place>`          | Regenerates the place's project file with Rogen and compiles with `rbxtsc` on every change |
+| `pnpm serve <place>`          | Serves the place to Studio with the `serve` tool from `tooling.json`                       |
+| `pnpm build <place>...`       | Builds the given places once, ending with `places/<place>/<place>.rbxl`                    |
+| `pnpm build`                  | Builds every place, one after another                                                      |
+| `pnpm build <place> --open`   | Builds, then opens the place file in Studio (via `argon studio`)                           |
+| `pnpm lint` / `pnpm lint:fix` | Runs ESLint and Prettier                                                                   |
 
 Run one place's `dev` or `watch` at a time. All places share the root `flamework.build`, and two compilers writing it at once can clobber each other.
 
@@ -65,13 +67,18 @@ src/
     Match/                    Round flow (server), match state and HUD component (client), messages (shared)
 
 places/<place>/
-  .rogen.json                 Sources (core + this place) and the base Rojo tree
+  .rogen.json                 Sources (core + this place), the base Rojo tree, and syncback rules
+  assets/                     Studio-made content: Workspace/ (the map), ServerStorage/, ReplicatedStorage/
   default.project.json        Generated by Rogen
+  <place>.rbxl                Generated by pnpm build
   out/                        Generated by rbxtsc
   include/                    Generated by rbxtsc (runtime and Flamework metadata)
 
 tsconfig.json                 Shared compiler options, and the editor view of all of src
-tsconfig.<place>.json         Compiles core + this place into places/<place>/out
+tsconfig.<place>.json         Generated by scripts/place.mjs: compiles core + this place into places/<place>/out
+scripts/                      place.mjs runs build/watch/serve/dev. publish.mjs uploads with rbxcloud.
+tooling.json                  Which tool builds (.rbxl) and which serves to Studio: rojo or argon
+.github/workflows/ci.yml      Lint, build and publish
 ```
 
 Rogen merges `src/core` and `src/<place>` into one Rojo project. It chooses the service from the `server`, `client` or `shared` folder name. Imports are relative to `src`, for example `import { DataService } from "core/Data/server/DataService"`.
@@ -88,7 +95,7 @@ There is only one pair of entry points, in `src/core`. Their globs (`src/*/*/ser
 - **Interface** (core): `UiController` mounts the Vide `App`, which every place shares. It shows a loading screen until the player's data arrives. Components read Charm atoms through `useAtom` from `@rbxts/vide-charm`. `CoinCounter` animates with a Ripple spring. Stories live in `Interface/client/stories` and open in UI Labs. `TopbarController` adds a topbar button that toggles the HUD. `useServerTime` counts down to times the server sends.
 - **Admin** (core): the Cmdr console (F2). It's open to everyone in Studio. In live servers it's limited to the place owner and `ADMIN_USER_IDS` in `CmdrService.ts`. Try `coins . 100` (`.` means yourself).
 - **Character** (core): `CharacterController` waits for the character to match a validate-tree schema and gives you a fully typed rig. A Janitor cleans up per-character connections.
-- **Teleport** (core): what both places need to agree on. `PLACE_IDS` holds each place's id. `MATCH_MODES` lists the modes, with their player counts and round length. `MatchTeleportData` is what the lobby sends and the match reads, checked with `isMatchTeleportData`. `teleport()` retries failed teleports, and in Studio, or while a place id is 0, it only logs.
+- **Teleport** (core): what both places need to agree on. `ENVIRONMENTS` in `environments.ts` lists the universe and place ids for staging and production. `PLACE_IDS` holds the ids for the universe the server is running in. `MATCH_MODES` lists the modes, with their player counts and round length. `MatchTeleportData` is what the lobby sends and the match reads, checked with `isMatchTeleportData`. `teleport()` retries failed teleports, and in Studio, or while a place id is 0, it only logs.
 - **Loading** (lobby): `LoadingService` waits for each player's data, then spawns them and respawns them when they die. Other lobby code checks `isLoaded(player)`.
 - **Queue** (lobby): `QueueService` keeps one queue per mode. A queue counts down once it reaches `minPlayers`. It launches when the countdown ends or the queue fills, which reserves a match server and teleports the group there. `QueueController` keeps `queuesAtom` in sync. `ModeSelect` is the picker, with one button per mode showing its queue size and countdown.
 - **LobbyUi** / **MatchUi**: each place's own interface. See [Place-specific UI](#place-specific-ui).
@@ -136,17 +143,50 @@ Name the UI feature after the place (`LobbyUi`, not `Interface`). Rogen merges s
 ## Adding a place
 
 1. Create `src/<place>/` and put features in it.
-2. Copy `places/lobby/` to `places/<place>/`. In its `.rogen.json`, change `"../../src/lobby"` and `"name"`.
-3. Copy `tsconfig.lobby.json` to `tsconfig.<place>.json` and change the `lobby` paths.
-4. Copy the four `*:lobby` scripts in `package.json`, rename them, and add `build:<place>` to `build`.
-5. Run `pnpm install` once to create `places/<place>/include`.
-6. Create its `<Place>Ui` feature, copied from `src/lobby/LobbyUi`.
-7. Add its id to `PLACE_IDS` in `core/Teleport/shared/places.ts`.
+2. Copy `places/lobby/.rogen.json` and `places/lobby/assets/` to `places/<place>/`. In its `.rogen.json`, change `"../../src/lobby"` and `"name"`. The scripts and CI find the place from this file, and generate its tsconfig and `include/` folder.
+3. Create its `<Place>Ui` feature, copied from `src/lobby/LobbyUi`.
+4. Add it to both environments in `core/Teleport/shared/environments.ts`, and to the `{ lobby: 0, match: 0 }` fallback in `places.ts`. `publish.mjs` publishes every place listed there.
 
-## Before publishing
+## Assets and syncback
 
-- Publish each place in the same experience, then fill in `PLACE_IDS`. Teleports are skipped until you do.
-- Give each place's file a matching name in Studio. Publish the lobby as the experience's start place.
+Code lives only in `src`. Anything you build in Studio lives in `places/<place>/assets`, and Argon's two-way sync writes your Studio edits there:
+
+| In Studio                  | On disk                    |
+| -------------------------- | -------------------------- |
+| `Workspace`                | `assets/Workspace`         |
+| `ServerStorage.Assets`     | `assets/ServerStorage`     |
+| `ReplicatedStorage.Assets` | `assets/ReplicatedStorage` |
+
+To use it, run `pnpm dev <place>` and turn on two-way sync in the Argon plugin.
+
+Content is stored in two ways:
+
+- **Synced instances.** Argon saves each instance as a folder with an `init.meta.json` file. It suits small things you edit often: spawn points, markers, lighting rigs, a few props. They diff well in pull requests. Each place starts with a `Baseplate` and a `SpawnLocation` stored this way.
+- **Packed models (`.rbxm`).** These suit big content such as a full map or a detailed model. In Studio, right-click it, choose _Save to File_, and save over the `.rbxm` in `assets/`. Git LFS stores them, through `.gitattributes`. Argon never writes `.rbxm` files, because `syncback.ignoreGlobs` in `.rogen.json` excludes them, so editing a packed model in Studio changes nothing on disk until you save it again.
+
+The syncback rules also keep Studio away from compiled code (`out/**` and `include/**`) and skip `Camera` and `Terrain`. Argon can't filter `../../node_modules`, because it sits outside the place folder, so don't edit packages in Studio while two-way sync is on.
+
+`pnpm build <place>` fails if the build tool can't read an asset file. Argon only logs those errors, so `scripts/place.mjs` turns them into a failed build.
+
+## CI/CD
+
+`.github/workflows/ci.yml` runs on GitHub Actions:
+
+| Trigger                                | What it does                                                            |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| Pull request                           | Lint and build every place, and upload the `.rbxl` files as an artifact |
+| Push to `main`                         | Same, then publish every place to **staging**                           |
+| Push a `v*` tag (or publish a release) | Same, then publish every place to **production**                        |
+
+Publishing runs `node scripts/publish.mjs <environment>`. It reads `ENVIRONMENTS` and calls `rbxcloud experience publish` once for each place. You can run it locally after `pnpm build`: put `RBXCLOUD_API_KEY=...` in `.env` and run `node --env-file=.env scripts/publish.mjs staging`.
+
+### Setup
+
+1. Create two experiences, staging and production. In each, add a place for the lobby, as the start place, and one for the match.
+2. Fill in their universe and place ids in `src/core/Teleport/shared/environments.ts`. Publishing fails while any id is 0. These ids aren't secret.
+3. Create an Open Cloud API key in the [Creator Dashboard](https://create.roblox.com/dashboard/credentials). Give it the **universe-places** API with **write** access for both experiences, and allow requests from any IP, because GitHub runners don't have fixed addresses.
+4. In GitHub > Settings > Environments, create `staging` and `production`. Add the key to each as the secret `RBXCLOUD_API_KEY`. Never commit the key. Locally, keep it in a `.env` file, which git already ignores.
+5. Optional: protect `production` with required reviewers and a `v*` tag rule, so each production publish needs an approval.
 
 ## Conventions
 
@@ -164,7 +204,7 @@ Name the UI feature after the place (`LobbyUi`, not `Interface`). Rogen merges s
 
 ## Notes
 
-- Never run a bare `rbxtsc` from the root. The root `tsconfig.json` exists for shared options and the editor. Use the `build:<place>` scripts.
+- Never run a bare `rbxtsc` from the root. The root `tsconfig.json` exists for shared options and the editor. Use `pnpm build`, `pnpm watch` or `pnpm dev`.
 - If you delete `flamework.build`, also delete every `places/*/out`. Flamework refuses to build when it finds a stale `tsbuildinfo`.
 - `pnpm-workspace.yaml` hoists `node_modules`, which is required for Argon and Rojo to resolve `@rbxts` dependencies. It also pins every transformer to roblox-ts's copy of TypeScript.
-- `argon.toml` turns off Argon's project detection, so Argon doesn't start a second `rbxtsc` alongside `watch:<place>`.
+- `argon.toml` turns off Argon's project detection, so Argon doesn't start a second `rbxtsc` alongside `pnpm watch <place>`.

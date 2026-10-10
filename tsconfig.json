@@ -17,7 +17,7 @@
 		"target": "ESNext",
 		"typeRoots": ["node_modules/@rbxts", "node_modules/@flamework"],
 
-		// configurable. Each place's tsconfig in `places/<name>` extends this and sets its own rootDir/outDir.
+		// configurable. `scripts/place.mjs` generates a `tsconfig.<place>.json` that extends this and sets its own rootDir/outDir.
 		// This file is only for the editor; never run `rbxtsc` from the root.
 		"baseUrl": "src",
 		"incremental": true,

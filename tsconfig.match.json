@@ -5,5 +5,8 @@
 		"outDir": "places/match/out",
 		"tsBuildInfoFile": "places/match/out/tsconfig.tsbuildinfo"
 	},
-	"include": ["src/core", "src/match"]
+	"include": [
+		"src/core",
+		"src/match"
+	]
 }

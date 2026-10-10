@@ -27,13 +27,35 @@
 							"$path": "../../node_modules/@flamework"
 						}
 					}
+				},
+				"Assets": {
+					"$path": "assets/ReplicatedStorage"
 				}
 			},
 			"Players": {
 				"$properties": {
 					"CharacterAutoLoads": false
 				}
+			},
+			"ServerStorage": {
+				"Assets": {
+					"$path": "assets/ServerStorage"
+				}
+			},
+			"Workspace": {
+				"$path": "assets/Workspace"
 			}
+		},
+		"syncback": {
+			"ignoreGlobs": [
+				"out/**",
+				"include/**",
+				"assets/**/*.rbxm"
+			],
+			"ignoreClasses": [
+				"Camera",
+				"Terrain"
+			]
 		}
 	}
 }

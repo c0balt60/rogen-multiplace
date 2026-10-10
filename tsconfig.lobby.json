@@ -5,5 +5,8 @@
 		"outDir": "places/lobby/out",
 		"tsBuildInfoFile": "places/lobby/out/tsconfig.tsbuildinfo"
 	},
-	"include": ["src/core", "src/lobby"]
+	"include": [
+		"src/core",
+		"src/lobby"
+	]
 }
